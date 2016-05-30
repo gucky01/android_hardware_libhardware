@@ -60,9 +60,14 @@ __BEGIN_DECLS
 #define AUDIO_DEVICE_API_VERSION_1_0 HARDWARE_DEVICE_API_VERSION(1, 0)
 #define AUDIO_DEVICE_API_VERSION_2_0 HARDWARE_DEVICE_API_VERSION(2, 0)
 #define AUDIO_DEVICE_API_VERSION_3_0 HARDWARE_DEVICE_API_VERSION(3, 0)
+#ifndef ICS_AUDIO_BLOB
 #define AUDIO_DEVICE_API_VERSION_CURRENT AUDIO_DEVICE_API_VERSION_3_0
+#else
+#define AUDIO_DEVICE_API_VERSION_CURRENT AUDIO_DEVICE_API_VERSION_1_0
+#endif
 /* Minimal audio HAL version supported by the audio framework */
-#define AUDIO_DEVICE_API_VERSION_MIN AUDIO_DEVICE_API_VERSION_2_0
+#define AUDIO_DEVICE_API_VERSION_MIN AUDIO_DEVICE_API_VERSION_1_0
+
 
 /**
  * List of known audio HAL modules. This is the base name of the audio HAL
@@ -613,6 +618,7 @@ struct audio_hw_device {
      */
     int (*set_master_volume)(struct audio_hw_device *dev, float volume);
 
+#ifndef ICS_AUDIO_BLOB
     /**
      * Get the current master volume value for the HAL, if the HAL supports
      * master volume control.  AudioFlinger will query this value from the
@@ -621,6 +627,7 @@ struct audio_hw_device {
      * this method may leave it set to NULL.
      */
     int (*get_master_volume)(struct audio_hw_device *dev, float *volume);
+#endif
 
     /**
      * set_mode is called when the audio mode changes. AUDIO_MODE_NORMAL mode
@@ -628,6 +635,8 @@ struct audio_hw_device {
      * playing, and AUDIO_MODE_IN_CALL when a call is in progress.
      */
     int (*set_mode)(struct audio_hw_device *dev, audio_mode_t mode);
+int (*dummy1)();
+int (*dummy2)();
 
     /* mic mute */
     int (*set_mic_mute)(struct audio_hw_device *dev, bool state);
@@ -648,7 +657,12 @@ struct audio_hw_device {
      * See also get_buffer_size which is for a particular stream.
      */
     size_t (*get_input_buffer_size)(const struct audio_hw_device *dev,
+#ifndef ICS_AUDIO_BLOB
                                     const struct audio_config *config);
+#else
+                                    uint32_t sample_rate, int format,
+                                    int channel_count);
+#endif
 
     /** This method creates and opens the audio hardware output stream.
      * The "address" parameter qualifies the "devices" audio device type if needed.
@@ -658,6 +672,7 @@ struct audio_hw_device {
      * - Other devices may use a number or any other string.
      */
 
+#ifndef ICS_AUDIO_BLOB
     int (*open_output_stream)(struct audio_hw_device *dev,
                               audio_io_handle_t handle,
                               audio_devices_t devices,
@@ -665,11 +680,18 @@ struct audio_hw_device {
                               struct audio_config *config,
                               struct audio_stream_out **stream_out,
                               const char *address);
+#else
+    int (*open_output_stream)(struct audio_hw_device *dev, uint32_t devices,
+                              int *format, uint32_t *channels,
+                              uint32_t *sample_rate,
+                              struct audio_stream_out **out);
+#endif
 
     void (*close_output_stream)(struct audio_hw_device *dev,
                                 struct audio_stream_out* stream_out);
 
     /** This method creates and opens the audio hardware input stream */
+#ifndef ICS_AUDIO_BLOB
     int (*open_input_stream)(struct audio_hw_device *dev,
                              audio_io_handle_t handle,
                              audio_devices_t devices,
@@ -678,6 +700,13 @@ struct audio_hw_device {
                              audio_input_flags_t flags,
                              const char *address,
                              audio_source_t source);
+#else
+    int (*open_input_stream)(struct audio_hw_device *dev, uint32_t devices,
+                             int *format, uint32_t *channels,
+                             uint32_t *sample_rate,
+                             audio_in_acoustics_t acoustics,
+                             struct audio_stream_in **stream_in);
+#endif
 
     void (*close_input_stream)(struct audio_hw_device *dev,
                                struct audio_stream_in *stream_in);
@@ -685,6 +714,7 @@ struct audio_hw_device {
     /** This method dumps the state of the audio hardware */
     int (*dump)(const struct audio_hw_device *dev, int fd);
 
+#ifndef ICS_AUDIO_BLOB
     /**
      * set the audio mute status for all audio activities.  If any value other
      * than 0 is returned, the software mixer will emulate this capability.
@@ -704,6 +734,7 @@ struct audio_hw_device {
      * Routing control
      */
 
+#endif
     /* Creates an audio patch between several source and sink ports.
      * The handle is allocated by the HAL and should be unique for this
      * audio HAL module. */
